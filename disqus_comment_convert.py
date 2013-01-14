@@ -1,9 +1,10 @@
 # convert exported disqus comments into their own custom format
 # this might be useful if you have moved blog software or URL scheme
 # and want to reimport existing comments
+import sys
 
 from bs4 import BeautifulSoup
-soup = BeautifulSoup(open('rickontheroad-2013-01-09T08-27-21.191539-all.xml'), "xml")
+
 
 
 class thread(object):
@@ -15,8 +16,25 @@ class comment(object):
     ''' Comment class holds attributes for comment '''
     pass
 
+def process_uri(uri):
+    # The following processing is specific to my task
+    # of changing e.g 2010-06-01-foo-bar.html to 2010/06/01/foo-bar
+    uri = uri.replace('.html', '')
+    uri_as_list = list(uri)
+    uri_as_list[4] = '/'
+    uri_as_list[7] = '/'
+    uri_as_list[10] = '/'
+    uri = "".join(uri_as_list)
+    return uri
 
-print soup.prettify()
+
+try:
+    soup = BeautifulSoup(open(sys.argv[1]), "xml")
+except IndexError:
+    print 'No file specified'
+    sys.exit(0)
+
+#print soup.prettify()
 threads = {}
 
 # loop through threads to get id and uri
@@ -26,7 +44,7 @@ for thread_tag in soup.find_all('thread'):
     t.comments = []
 
     if(thread_tag.id):
-        t.uri = thread_tag.id.contents
+        t.uri = process_uri(thread_tag.id.contents[0])
 
         threads[t.id] = t
 
@@ -44,11 +62,9 @@ for post in soup.find_all('post'):
 
         threads[thread_id].comments.append(c)
 
-        #print c.__dict__
 
-#print threads['122686389'].__dict__
 for thread_id,thread in threads.items():
-    print thread.id + ' ' + thread.uri[0]
+    print thread.id + ' ' + thread.uri
     #print thread.comments
     for comment in thread.comments:
         try:
@@ -58,4 +74,6 @@ for thread_id,thread in threads.items():
         print comment.name[0]
         print comment.ipaddress[0]
         print comment.message[0]
+
+
 
