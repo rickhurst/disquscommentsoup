@@ -4,7 +4,9 @@
 import sys
 
 from bs4 import BeautifulSoup
-
+from django.template import Template, Context
+from django.conf import settings
+settings.configure()
 
 
 class thread(object):
@@ -34,6 +36,12 @@ except IndexError:
     print 'No file specified'
     sys.exit(0)
 
+try:
+    host = sys.argv[2]
+except IndexError:
+    print "No host specified"
+    sys.exit(0)
+
 #print soup.prettify()
 threads = {}
 
@@ -44,8 +52,11 @@ for thread_tag in soup.find_all('thread'):
     t.comments = []
 
     if(thread_tag.id):
-        t.uri = process_uri(thread_tag.id.contents[0])
-
+        t.slug = thread_tag.id.contents[0]
+        t.uri = process_uri(t.slug)
+        t.title = thread_tag.title.contents[0]
+        t.date_time = '(datetime)'
+        print t.title
         threads[t.id] = t
 
 # loop through posts to find comments and associate with
@@ -59,21 +70,42 @@ for post in soup.find_all('post'):
         c.email = post.author.email.contents
         c.name = post.author.find('name').contents
         c.ipaddress = post.ipAddress.contents
+        #c.date_time = 
 
         threads[thread_id].comments.append(c)
 
 
-for thread_id,thread in threads.items():
-    print thread.id + ' ' + thread.uri
-    #print thread.comments
-    for comment in thread.comments:
-        try:
-            print comment.email[0]
-        except IndexError:
-            pass
-        print comment.name[0]
-        print comment.ipaddress[0]
-        print comment.message[0]
+# for thread_id,thread in threads.items():
+#     print thread.id + ' ' + thread.uri
+#     print thread.comments
+#     for comment in thread.comments:
+#         try:
+#             print comment.email[0]
+#         except IndexError:
+#             pass
+#         #print comment.name[0]
+#         #print comment.ipaddress[0]
+#         #print comment.message[0]
+
+# for rendering of output xml using django templates, see:-
+# http://stackoverflow.com/questions/98135/how-do-i-use-django-templates-without-the-rest-of-django
+# >>> from django.template import Template, Context
+# >>> from django.conf import settings
+# >>> settings.configure()
+# >>> t = Template('My name is {{ my_name }}.')
+# >>> c = Context({'my_name': 'Daryl Spitzer'})
+# >>> t.render(c)
+print threads
+
+f = open('import_template.xml')
+t = Template(f.read())
+c = Context({
+    'threads': threads,
+    'host': host,
+    })
+output = t.render(c)
+print output
+
 
 
 

@@ -13,3 +13,7 @@ BeautifulSoup 4 http://www.crummy.com/software/BeautifulSoup/
 lxml
 
 `$ pip install lxml` 
+
+Django (for templating only)
+
+`$ pip install Django==1.4`
