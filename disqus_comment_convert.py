@@ -29,6 +29,12 @@ def process_uri(uri):
     uri = "".join(uri_as_list)
     return uri
 
+def to_gmt(date_str):
+    ''' convert from YYYY-MM-DDTHH:MM:SSZ to YYYY-MM-DD HH:MM:SS '''
+    date_as_list = list(date_str)
+    date_as_list[10] = ' '
+    date_as_list[19] =''
+    return "".join(date_as_list)
 
 try:
     soup = BeautifulSoup(open(sys.argv[1]), "xml")
@@ -55,22 +61,35 @@ for thread_tag in soup.find_all('thread'):
         t.slug = thread_tag.id.contents[0]
         t.uri = process_uri(t.slug)
         t.title = thread_tag.title.contents[0]
-        t.date_time = '(datetime)'
+        t.date_time = thread_tag.createdAt.contents[0]
+        t.date_gmt = to_gmt(t.date_time)
         print t.title
         threads[t.id] = t
 
 # loop through posts to find comments and associate with
 # thread
+c_id = 0
+
 for post in soup.find_all('post'):
     if post.thread:
+        c_id = c_id + 1
         thread_id = post.thread['dsq:id']
         print 'thread id' + thread_id
         c = comment()
-        c.message = post.message.contents
-        c.email = post.author.email.contents
-        c.name = post.author.find('name').contents
-        c.ipaddress = post.ipAddress.contents
+        c.message = post.message.contents[0]
+        try:
+            c.email = post.author.email.contents[0]
+        except IndexError:
+            c.email = ''
+            pass
+
+        c.name = post.author.find('name').contents[0]
+        c.ipaddress = post.ipAddress.contents[0]
         #c.date_time = 
+        c.date = post.createdAt.contents[0]
+        c.date_gmt = to_gmt(c.date)
+
+        c.id = c_id
 
         threads[thread_id].comments.append(c)
 
@@ -105,6 +124,10 @@ c = Context({
     })
 output = t.render(c)
 print output
+
+output = output.encode('ascii', 'ignore')
+f_out = open('output.xml', 'w')
+f_out.write(output)
 
 
 
